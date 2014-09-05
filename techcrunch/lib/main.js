@@ -93,3 +93,4 @@ var tabs
 , buttons
 , button
 , ui_server
+, init
