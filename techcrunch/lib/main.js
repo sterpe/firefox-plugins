@@ -1,6 +1,8 @@
 Request = require("sdk/request").Request
 tabs = require("sdk/tabs")
 querystring = require("sdk/querystring")
+api_server = "http://localhost"
+uid = 1
 
 tabs.on("activate", function () {
 	up_time = new Date().valueOf()
@@ -9,15 +11,14 @@ tabs.on("activate", function () {
 		down_time = new Date().valueOf()
 		console.log(tab.url, up_time, down_time)
 		request = Request({
-			url: "http://localhost",
-			overrideMimeType: "text/plain; charset=latin1",
+			url: api_server,
 			content: querystring.stringify({
+				uid: uid
 				utime: up_time,
 				dtime: down_time,
 				tab: querystring.escape(tab.url)
 			}),
 			onComplete: function (response) {
-				console.log(response)
 				console.log(response.status,
 					response.statusText)
 			}
@@ -33,5 +34,7 @@ tabs.on("activate", function () {
 })
 
 var tabs
+, uid
 , querystring
 , Request
+, api_server
