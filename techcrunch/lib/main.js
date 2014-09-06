@@ -1,4 +1,5 @@
 system = require('sdk/system')
+events = require("sdk/system/events")
 XMLHttpRequest = require("sdk/net/xhr").XMLHttpRequest
 tabs = require("sdk/tabs")
 buttons = require("sdk/ui/button/action")
@@ -10,7 +11,31 @@ uid = 1
 init = false
 
 var { viewFor } = require("sdk/view/core")
+var { Ci } = require("chrome")
 
+function postEvent(data) {
+	request = new XMLHttpRequest()
+	request.open("POST", api_server, true)
+	request.setRequestHeader("Content-Type", "application/json")
+	request.onreadystatechange = function () {
+		if (request.readyState == 4) {
+			console.log(request.status)
+		}
+	}
+	request.send(JSON.stringify({
+		userId: uid,
+		eventStartTime: data.up_time,
+		timezoneOffset: new Date().getTimezoneOffset(),
+		url: data.url,
+		referer: data.tab.referer || "",
+		ip: "123.456.78.9",
+		usageValue: 12,
+		eventType: data.eventType,
+		deviceId: system.id,
+		userAgent: data.tab.user_agent
+	}))
+	var request
+}
 function postTimeUpDown(data) {
 	if (data.up_time && data.down_time && data.url) {
 		request = new XMLHttpRequest()
@@ -50,6 +75,56 @@ function onTabDeactivated(tab) {
 			user_agent: tab.user_agent
 		}
 	})
+}
+function onXpcomWillShutdown(e) {
+	console.log("firefox is shutting down")
+	tab = tabs.activeTab
+	postTimeUpDown({
+		up_time: tab.up_time,
+		down_time: new Date().valueOf(),
+		url: tab.curr_url,
+		tab: {
+			referer: tab.referer,
+			user_agent: tab.user_agent
+		}
+	})
+	postEvent({
+		eventType: "browserExit",
+		up_time: new date().valueOf(),
+		down_time: null,
+		url: tab.curr_url,
+		tab: {
+			referer: tab.referer,
+			user_agent: tab.user_agent
+		}
+	})
+}
+function onUserInteractionInactive(e) {
+	console.log("user inactive")
+	tab = tabs.activeTab
+	timer_id = timers.setTimeout(function () {
+		console.log('user inactive for 2 min')
+		timer_id = null
+		postTimeUpDown({
+			up_time: tab.up_time,
+			down_time: new Date().valueOf(),
+			url: tab.curr_url,
+			tab: {
+				referer: tab.referer,
+				user_agent: tab.user_agent
+			}
+		})
+	}, 120000)
+	events.once("user-interaction-active", function () {
+		if (timer_id !== null) {
+			console.log("user returned to activity w/in 2min")
+			timers.clearTimeout(timer_id)
+		} else {
+			onTabActivated(tabs.activeTab)
+		}
+	})
+	var timer_id
+	, tab
 }
 function onTabClose(tab) {
 	console.log("tab closed")
@@ -129,6 +204,8 @@ tabs.on("activate", onTabActivated)
 tabs.on("deactivate", onTabDeactivated)
 tabs.on("ready", onTabReady)
 tabs.on("close", onTabClose)
+events.on("user-interaction-inactive", onUserInteractionInactive)
+events.on("quit-application", onXpcomWillShutdown)
 onTabOpen(tabs.activeTab)
 
 var tabs
@@ -140,3 +217,4 @@ var tabs
 , ui_server
 , init
 , self
+, events
