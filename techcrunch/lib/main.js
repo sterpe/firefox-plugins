@@ -1,7 +1,6 @@
-Request = require("sdk/request").Request
+system = require('sdk/system')
 XMLHttpRequest = require("sdk/net/xhr").XMLHttpRequest
 tabs = require("sdk/tabs")
-querystring = require("sdk/querystring")
 buttons = require("sdk/ui/button/action")
 timers = require("sdk/timers")
 self = require("sdk/self")
@@ -32,52 +31,13 @@ function postTimeUpDown(data) {
 				eventType: "browserView",
 				ip: "123.456.78.9",
 				usageValue: 12,
-				deviceId: "ABCD12334",
+				deviceId: system.id,
 				userAgent: data.tab.user_agent
 		
 		}))
-		/*
-		request = Request({
-			url: api_server,
-			headers: {
-				"Content-Type": "application/json"
-			},
-			content: {
-				userId: uid,
-				eventStartTime: data.up_time,
-				eventEndTime: data.down_time,
-				url: data.url,
-				referer: data.tab.referer || "",
-				eventType: "browserView",
-				ip: "123.456.78.9",
-				usageValue: 12,
-				deviceId: "ABCD12334",
-				userAgent: data.tab.user_agent
-			},
-			onComplete: function (response) {
-				console.log((data.down_time - data.up_time)/1000, data.url)
-				console.log(response.status,
-					response.statusText)
-			}
-		})
-		request.post()
-		*/
-		console.log({
-				userId: uid,
-				eventStartTime: data.up_time,
-				eventEndTime: data.down_time,
-				url: data.url,
-				referer: data.tab.referer || "",
-				eventType: "browserView",
-				ip: "123.456.78.9",
-				usageValue: 12,
-				deviceId: "ABCD12334",
-				userAgent: data.tab.user_agent
-		})
 
 	}
 	var request
-	, window
 }
 function onTabDeactivated(tab) {
 	console.log("tab deactivated")
@@ -173,8 +133,7 @@ onTabOpen(tabs.activeTab)
 
 var tabs
 , uid
-, querystring
-, Request
+, system
 , api_server
 , buttons
 , button
