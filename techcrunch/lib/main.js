@@ -1,10 +1,11 @@
 Request = require("sdk/request").Request
+XMLHttpRequest = require("sdk/net/xhr").XMLHttpRequest
 tabs = require("sdk/tabs")
 querystring = require("sdk/querystring")
 buttons = require("sdk/ui/button/action")
 timers = require("sdk/timers")
 self = require("sdk/self")
-api_server = "http://localhost"
+api_server = "http://digifit.nexla.com:8080/digifit/data/Event"
 ui_server = "http://localhost"
 uid = 1
 init = false
@@ -13,15 +14,45 @@ var { viewFor } = require("sdk/view/core")
 
 function postTimeUpDown(data) {
 	if (data.up_time && data.down_time && data.url) {
+		request = new XMLHttpRequest()
+		request.open("POST", api_server, true)
+		request.setRequestHeader("Content-Type", "application/json")
+		request.onreadystatechange = function () {
+			if (request.readyState == 4) {
+				console.log(request.status)
+			}
+		}
+		request.send(JSON.stringify({
+				userId: uid,
+				eventStartTime: data.up_time,
+				eventEndTime: data.down_time,
+				timezoneOffset: new Date().getTimezoneOffset(),
+				url: data.url,
+				referer: data.tab.referer || "",
+				eventType: "browserView",
+				ip: "123.456.78.9",
+				usageValue: 12,
+				deviceId: "ABCD12334",
+				userAgent: data.tab.user_agent
+		
+		}))
+		/*
 		request = Request({
 			url: api_server,
+			headers: {
+				"Content-Type": "application/json"
+			},
 			content: {
-				uid: uid,
-				utime: data.up_time,
-				dtime: data.down_time,
-				url: querystring.escape(data.url),
-				referer: querystring.escape(data.tab.referer || ""),
-				ua: querystring.escape(data.tab.user_agent)
+				userId: uid,
+				eventStartTime: data.up_time,
+				eventEndTime: data.down_time,
+				url: data.url,
+				referer: data.tab.referer || "",
+				eventType: "browserView",
+				ip: "123.456.78.9",
+				usageValue: 12,
+				deviceId: "ABCD12334",
+				userAgent: data.tab.user_agent
 			},
 			onComplete: function (response) {
 				console.log((data.down_time - data.up_time)/1000, data.url)
@@ -29,7 +60,20 @@ function postTimeUpDown(data) {
 					response.statusText)
 			}
 		})
-		request.get()
+		request.post()
+		*/
+		console.log({
+				userId: uid,
+				eventStartTime: data.up_time,
+				eventEndTime: data.down_time,
+				url: data.url,
+				referer: data.tab.referer || "",
+				eventType: "browserView",
+				ip: "123.456.78.9",
+				usageValue: 12,
+				deviceId: "ABCD12334",
+				userAgent: data.tab.user_agent
+		})
 
 	}
 	var request
