@@ -3,23 +3,28 @@ tabs = require("sdk/tabs")
 querystring = require("sdk/querystring")
 buttons = require("sdk/ui/button/action")
 timers = require("sdk/timers")
+self = require("sdk/self")
 api_server = "http://localhost"
 ui_server = "http://localhost"
 uid = 1
 init = false
 
-function postTimeUpDown(up_time, down_time, url) {
-	if (up_time && down_time && url) {
+var { viewFor } = require("sdk/view/core")
+
+function postTimeUpDown(data) {
+	if (data.up_time && data.down_time && data.url) {
 		request = Request({
 			url: api_server,
-			content: querystring.stringify({
+			content: {
 				uid: uid,
-				utime: up_time,
-				dtime: down_time,
-				tab: querystring.escape(url)
-			}),
+				utime: data.up_time,
+				dtime: data.down_time,
+				url: querystring.escape(data.url),
+				referer: querystring.escape(data.tab.referer || ""),
+				ua: querystring.escape(data.tab.user_agent)
+			},
 			onComplete: function (response) {
-				console.log((down_time - up_time)/1000, url)
+				console.log((data.down_time - data.up_time)/1000, data.url)
 				console.log(response.status,
 					response.statusText)
 			}
@@ -28,25 +33,62 @@ function postTimeUpDown(up_time, down_time, url) {
 
 	}
 	var request
+	, window
 }
 function onTabDeactivated(tab) {
 	console.log("tab deactivated")
-	postTimeUpDown(tab.up_time, new Date().valueOf(), tab.curr_url)
+	postTimeUpDown({
+		up_time: tab.up_time,
+		down_time: new Date().valueOf(),
+		url: tab.curr_url,
+		tab: {
+			referer: tab.referer,
+			user_agent: tab.user_agent
+		}
+	})
 }
 function onTabClose(tab) {
 	console.log("tab closed")
 	if (tabs.activeTab === tab) {
-		postTimeUpDown(tab.up_time, new Date().valueOf(), tab.curr_url)
+		postTimeUpDown({
+			up_time: tab.up_time,
+			down_time: new Date().valueOf(),
+			url: tab.curr_url,
+			tab: {
+				referer: tab.referer,
+				user_agent: tab.user_agent
+			}
+		})
 	}
 }
 function onTabReady(tab) {
 	console.log("tab ready")
 	if (tab.up_time) {
-		postTimeUpDown(tab.up_time, new Date().valueOf(), tab.curr_url)
-	} else {
+		postTimeUpDown({
+			up_time: tab.up_time,
+			down_time: new Date().valueOf(),
+			url: tab.curr_url,
+			tab: {
+				referer: tab.referer,
+				user_agent: tab.user_agent
+			}
+		})
 	}
+	worker = tab.attach({
+		contentScriptFile: self.data.url("content-script.js")
+	})
+	worker.port.on('referer', function (referer) {
+		console.log("REFERRER: ", referer)
+		tab.referer = referer
+	})
+	worker.port.emit('ready', "empty message")
 	tab.up_time = new Date().valueOf()
 	tab.curr_url = tab.url
+	window = viewFor(tab.window)
+	tab.user_agent = window.navigator.userAgent
+
+	var window
+	, worker
 }
 function onTabActivated(tab) {
 	console.log("tab activated")
@@ -94,3 +136,4 @@ var tabs
 , button
 , ui_server
 , init
+, self
