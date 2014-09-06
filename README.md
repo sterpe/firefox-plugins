@@ -1,4 +1,4 @@
-firefox-plugins
+digifit_web_tracker
 ===============
 
 ####Setup####
