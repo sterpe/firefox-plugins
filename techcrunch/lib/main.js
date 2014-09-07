@@ -100,6 +100,7 @@ function onWake(e) {
 		tab: {
 			user_agent: tabs.activeTab.user_agent
 		}
+		onTabActivated(tabs.activeTab)
 	})
 }
 function onXpcomWillShutdown(e) {
