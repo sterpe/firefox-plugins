@@ -11,8 +11,6 @@ uid = 1
 init = false
 
 var { viewFor } = require("sdk/view/core")
-//var { Class } = require('sdk/core/heritage')
-//var { Unknown } = require('sdk/platform/xpcom')
 var { Cc, Ci } = require("chrome")
 
 function postEvent(data, fn) {
@@ -81,6 +79,26 @@ function onTabDeactivated(tab) {
 		tab: {
 			referer: tab.referer,
 			user_agent: tab.user_agent
+		}
+	})
+}
+function onSleep(e) {
+	postEvent({
+		eventType: "sleep",
+		up_time: new Date().valueOf(),
+		down_time: null,
+		tab: {
+			user_agent: tabs.activeTab.user_agent
+		}
+	})
+}
+function onWake(e) {
+	postEvent({
+		eventType: "wake",
+		up_time: new Date().valueOf(),
+		down_time: null,
+		tab: {
+			user_agent: tabs.activeTab.user_agent
 		}
 	})
 }
@@ -215,6 +233,8 @@ tabs.on("deactivate", onTabDeactivated)
 tabs.on("ready", onTabReady)
 tabs.on("close", onTabClose)
 events.on("user-interaction-inactive", onUserInteractionInactive)
+events.on("sleep_notification", onSleep)
+events.on("wake_notification", onWake)
 os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService)
 os.addObserver({
 	observe: function (subject, topic, data) {
