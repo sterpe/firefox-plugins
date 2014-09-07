@@ -11,15 +11,20 @@ uid = 1
 init = false
 
 var { viewFor } = require("sdk/view/core")
-var { Ci } = require("chrome")
+//var { Class } = require('sdk/core/heritage')
+//var { Unknown } = require('sdk/platform/xpcom')
+var { Cc, Ci } = require("chrome")
 
-function postEvent(data) {
+function postEvent(data, fn) {
 	request = new XMLHttpRequest()
 	request.open("POST", api_server, true)
 	request.setRequestHeader("Content-Type", "application/json")
 	request.onreadystatechange = function () {
 		if (request.readyState == 4) {
-			console.log(request.status)
+			console.log(request.status, data)
+			if (fn && typeof fn === 'function') {
+				fn.call(null, request)
+			}
 		}
 	}
 	request.send(JSON.stringify({
@@ -36,14 +41,17 @@ function postEvent(data) {
 	}))
 	var request
 }
-function postTimeUpDown(data) {
+function postTimeUpDown(data, fn) {
 	if (data.up_time && data.down_time && data.url) {
 		request = new XMLHttpRequest()
 		request.open("POST", api_server, true)
 		request.setRequestHeader("Content-Type", "application/json")
 		request.onreadystatechange = function () {
 			if (request.readyState == 4) {
-				console.log(request.status)
+				console.log(request.status, "tu-td")
+				if (fn && typeof fn === 'function') {
+					fn.call(null, request)
+				}
 			}
 		}
 		request.send(JSON.stringify({
@@ -77,7 +85,6 @@ function onTabDeactivated(tab) {
 	})
 }
 function onXpcomWillShutdown(e) {
-	console.log("firefox is shutting down")
 	tab = tabs.activeTab
 	postTimeUpDown({
 		up_time: tab.up_time,
@@ -87,16 +94,19 @@ function onXpcomWillShutdown(e) {
 			referer: tab.referer,
 			user_agent: tab.user_agent
 		}
-	})
-	postEvent({
-		eventType: "browserExit",
-		up_time: new date().valueOf(),
-		down_time: null,
-		url: tab.curr_url,
-		tab: {
-			referer: tab.referer,
-			user_agent: tab.user_agent
-		}
+	}, function () {
+		postEvent({
+			eventType: "browserExit",
+			up_time: new Date().valueOf(),
+			down_time: null,
+			url: tab.curr_url,
+			tab: {
+				referer: tab.referer,
+				user_agent: tab.user_agent
+			}
+		}, function () {
+			system.exit()
+		})
 	})
 }
 function onUserInteractionInactive(e) {
@@ -205,7 +215,16 @@ tabs.on("deactivate", onTabDeactivated)
 tabs.on("ready", onTabReady)
 tabs.on("close", onTabClose)
 events.on("user-interaction-inactive", onUserInteractionInactive)
-events.on("quit-application", onXpcomWillShutdown)
+os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService)
+os.addObserver({
+	observe: function (subject, topic, data) {
+		bool = subject.QueryInterface(Ci.nsISupportsPRBool)
+		bool.data = true
+		os.removeObserver(this, "quit-application-requested")
+		onXpcomWillShutdown()
+	}
+}, "quit-application-requested", false)
+
 onTabOpen(tabs.activeTab)
 
 var tabs
@@ -218,3 +237,4 @@ var tabs
 , init
 , self
 , events
+, os
