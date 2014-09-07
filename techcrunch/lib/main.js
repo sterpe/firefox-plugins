@@ -91,6 +91,17 @@ function onSleep(e) {
 			user_agent: tabs.activeTab.user_agent
 		}
 	})
+	tab = tabs.activeTab
+	postTimeUpDown({
+		up_time: tab.up_time,
+		down_time: new Date().valueOf(),
+		url: tab.curr_url,
+		tab: {
+			referer: tab.referer,
+			user_agent: tab.user_agent
+		}
+	})
+	tab.up_time = null
 }
 function onWake(e) {
 	postEvent({
@@ -100,8 +111,8 @@ function onWake(e) {
 		tab: {
 			user_agent: tabs.activeTab.user_agent
 		}
-		onTabActivated(tabs.activeTab)
 	})
+		onTabActivated(tabs.activeTab)
 }
 function onXpcomWillShutdown(e) {
 	tab = tabs.activeTab
@@ -143,6 +154,7 @@ function onUserInteractionInactive(e) {
 				user_agent: tab.user_agent
 			}
 		})
+		tab.up_time = null
 	}, 120000)
 	events.once("user-interaction-active", function () {
 		if (timer_id !== null) {
